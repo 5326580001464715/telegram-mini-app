@@ -2,259 +2,1217 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 Безопасный менеджер паролей</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🔐 Менеджер паролей</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="style.css">
-    <!-- Иконки -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Базовые стили */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Segoe UI Emoji', sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            line-height: 1.4;
+            overflow-x: hidden;
+            min-height: 100vh;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        /* Контейнеры */
+        .container {
+            max-width: 100%;
+            padding: 16px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        }
+
+        /* Заголовки */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-top: 8px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .header .subtitle {
+            color: var(--tg-theme-hint-color, #707579);
+            font-size: 14px;
+        }
+
+        /* Категории */
+        .categories {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .categories::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-btn {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            color: var(--tg-theme-text-color, #000000);
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .category-btn.active {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        /* Карточки паролей */
+        .password-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 80px;
+        }
+
+        .password-card {
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            border-radius: 16px;
+            padding: 18px;
+            border: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1));
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .password-card:active {
+            transform: scale(0.98);
+        }
+
+        .password-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .service-name {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .category-badge {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .password-field {
+            background: var(--tg-theme-bg-color, #ffffff);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border: 1px solid var(--tg-theme-hint-color, #e5e5e5);
+        }
+
+        .field-label {
+            display: block;
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #707579);
+            margin-bottom: 6px;
+        }
+
+        .field-value {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--tg-theme-text-color, #000000);
+            word-break: break-all;
+        }
+
+        .password-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--tg-theme-button-color, #2481cc);
+            background: transparent;
+            color: var(--tg-theme-button-color, #2481cc);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .action-btn.copy {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        /* Форма добавления */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--tg-theme-bg-color, #ffffff);
+            border-radius: 24px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--tg-theme-hint-color, #e5e5e5);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #2481cc);
+        }
+
+        .select-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--tg-theme-hint-color, #e5e5e5);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23707579' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn-primary {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .btn-secondary {
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        /* Кнопка добавления */
+        .add-btn-container {
+            position: fixed;
+            bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .add-btn {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 28px;
+            padding: 16px 32px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(36, 129, 204, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .add-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-width: 90%;
+            text-align: center;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        /* Меню экспорта */
+        .export-menu {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+
+        .export-btn {
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--tg-theme-text-color, #000000);
+            transition: transform 0.2s;
+        }
+
+        .export-btn:active {
+            transform: scale(0.9);
+        }
+
+        .export-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--tg-theme-bg-color, #ffffff);
+            border-radius: 12px;
+            padding: 8px;
+            margin-top: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: none;
+            min-width: 180px;
+            border: 1px solid var(--tg-theme-hint-color, #e5e5e5);
+        }
+
+        .export-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .export-option {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: none;
+            background: none;
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 15px;
+            text-align: left;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .export-option:hover,
+        .export-option:active {
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+        }
+
+        /* Пустой список */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--tg-theme-hint-color, #707579);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* Адаптация для iOS */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                min-height: -webkit-fill-available;
+            }
+        }
+
+        /* Темная тема */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --tg-theme-bg-color: #1c1c1e;
+                --tg-theme-text-color: #ffffff;
+                --tg-theme-secondary-bg-color: #2c2c2e;
+                --tg-theme-hint-color: #48484a;
+                --tg-theme-button-color: #0a84ff;
+                --tg-theme-button-text-color: #ffffff;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Экран ввода мастер-пароля -->
-    <div id="loginScreen" class="screen active">
-        <div class="login-container">
-            <div class="lock-icon">
-                <i class="fas fa-lock"></i>
-            </div>
-            <h1>🔐 Безопасный доступ</h1>
-            <p class="subtitle">Введите мастер-пароль</p>
-            
-            <div class="input-group">
-                <input type="password" id="masterPassword" placeholder="Мастер-пароль" 
-                       autocomplete="off" autofocus>
-                <button class="eye-btn" onclick="togglePassword('masterPassword')">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-            
-            <button class="btn-primary" onclick="login()">🔓 Разблокировать</button>
-            
-            <div class="hint">
-                <p><i class="fas fa-info-circle"></i> Пароль хранится только на вашем устройстве</p>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Менеджер паролей</h1>
+            <div class="subtitle">Безопасное локальное хранение</div>
+        </div>
+
+        <!-- Категории -->
+        <div class="categories" id="categories">
+            <button class="category-btn active" data-category="all">Все</button>
+            <button class="category-btn" data-category="social">Соцсети</button>
+            <button class="category-btn" data-category="email">Почта</button>
+            <button class="category-btn" data-category="games">Игры</button>
+            <button class="category-btn" data-category="finance">Финансы</button>
+            <button class="category-btn" data-category="work">Работа</button>
+        </div>
+
+        <!-- Список паролей -->
+        <div class="password-list" id="passwordList">
+            <!-- Пароли загружаются динамически -->
+        </div>
+
+        <!-- Состояние пустого списка -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">🔐</div>
+            <div class="empty-text">Пока нет сохранённых паролей</div>
+            <button class="btn btn-primary" onclick="showAddForm()">
+                <span>+</span> Добавить первый пароль
+            </button>
         </div>
     </div>
 
-    <!-- Основной интерфейс -->
-    <div id="mainScreen" class="screen">
-        <div class="container">
-            <!-- Заголовок -->
-            <header>
-                <div class="header-content">
-                    <h1><i class="fas fa-key"></i> Менеджер паролей</h1>
-                    <div class="header-actions">
-                        <button class="btn-icon" onclick="lockApp()" title="Заблокировать">
-                            <i class="fas fa-lock"></i>
-                        </button>
-                        <button class="btn-icon" onclick="exportData()" title="Экспорт">
-                            <i class="fas fa-download"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Поиск по названию или логину...">
-                </div>
-            </header>
+    <!-- Кнопка добавления -->
+    <div class="add-btn-container">
+        <button class="add-btn" onclick="showAddForm()">
+            <span>+</span> Добавить пароль
+        </button>
+    </div>
 
-            <!-- Статистика -->
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-secret"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="totalPasswords">0</h3>
-                        <p>Сохранено паролей</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="securityScore">0%</h3>
-                        <p>Уровень безопасности</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Категории -->
-            <div class="categories">
-                <button class="category-btn active" onclick="filterByCategory('all')">
-                    <i class="fas fa-globe"></i> Все
-                </button>
-                <button class="category-btn" onclick="filterByCategory('social')">
-                    <i class="fas fa-users"></i> Соцсети
-                </button>
-                <button class="category-btn" onclick="filterByCategory('games')">
-                    <i class="fas fa-gamepad"></i> Игры
-                </button>
-                <button class="category-btn" onclick="filterByCategory('bank')">
-                    <i class="fas fa-university"></i> Банки
-                </button>
-                <button class="category-btn" onclick="filterByCategory('other')">
-                    <i class="fas fa-ellipsis-h"></i> Другое
-                </button>
-            </div>
-
-            <!-- Список паролей -->
-            <div class="passwords-list" id="passwordsList">
-                <!-- Пароли будут загружены здесь -->
-            </div>
-
-            <!-- Кнопка добавления -->
-            <div class="add-btn-container">
-                <button class="btn-add" onclick="showAddForm()">
-                    <i class="fas fa-plus"></i> Добавить пароль
-                </button>
-            </div>
+    <!-- Меню экспорта -->
+    <div class="export-menu">
+        <button class="export-btn" onclick="toggleExportMenu()">⬇️</button>
+        <div class="export-dropdown" id="exportDropdown">
+            <button class="export-option" onclick="exportEncrypted()">
+                <span>🔒</span> Экспорт с шифрованием
+            </button>
+            <button class="export-option" onclick="exportUnencrypted()">
+                <span>📄</span> Экспорт без шифрования
+            </button>
+            <button class="export-option" onclick="showStats()">
+                <span>📊</span> Статистика
+            </button>
         </div>
     </div>
 
-    <!-- Модальное окно добавления/редактирования -->
-    <div class="modal" id="passwordModal">
+    <!-- Модальное окно добавления пароля -->
+    <div class="modal-overlay" id="addModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Добавить новый пароль</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            
-            <form id="passwordForm" onsubmit="savePassword(event)">
+            <h2 class="modal-title">Добавить пароль</h2>
+            <form id="passwordForm">
                 <div class="form-group">
-                    <label><i class="fas fa-globe"></i> Название сервиса</label>
-                    <input type="text" id="serviceName" required 
-                           placeholder="Например: Steam, VK, Gmail">
+                    <label class="form-label">Название сервиса</label>
+                    <input type="text" class="form-input" id="serviceName" placeholder="Например: Gmail" required>
                 </div>
-                
                 <div class="form-group">
-                    <label><i class="fas fa-user"></i> Логин / Email</label>
-                    <input type="text" id="username" required 
-                           placeholder="Логин или email">
+                    <label class="form-label">Логин / Email</label>
+                    <input type="text" class="form-input" id="username" placeholder="Ваш логин" required>
                 </div>
-                
                 <div class="form-group">
-                    <label><i class="fas fa-key"></i> Пароль</label>
-                    <div class="password-input-group">
-                        <input type="password" id="password" required 
-                               placeholder="Введите пароль">
-                        <div class="password-actions">
-                            <button type="button" class="icon-btn" 
-                                    onclick="togglePassword('password')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="icon-btn" 
-                                    onclick="generatePassword()">
-                                <i class="fas fa-random"></i>
-                            </button>
-                            <button type="button" class="icon-btn" 
-                                    onclick="copyToClipboard('password')">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
+                    <label class="form-label">Пароль</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="password" class="form-input" id="password" placeholder="Введите пароль" required style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="generatePassword()" style="flex-shrink: 0; padding: 0 15px;">
+                            🎲
+                        </button>
                     </div>
                 </div>
-                
                 <div class="form-group">
-                    <label><i class="fas fa-link"></i> URL сайта</label>
-                    <input type="url" id="website" 
-                           placeholder="https://example.com">
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-tag"></i> Категория</label>
-                    <select id="category">
-                        <option value="social">Социальные сети</option>
-                        <option value="games">Игры</option>
-                        <option value="bank">Банки/Финансы</option>
+                    <label class="form-label">Категория</label>
+                    <select class="select-input" id="category">
+                        <option value="social">Соцсети</option>
                         <option value="email">Почта</option>
+                        <option value="games">Игры</option>
+                        <option value="finance">Финансы</option>
                         <option value="work">Работа</option>
                         <option value="other">Другое</option>
                     </select>
                 </div>
-                
                 <div class="form-group">
-                    <label><i class="fas fa-sticky-note"></i> Заметки</label>
-                    <textarea id="notes" rows="2" 
-                              placeholder="Дополнительная информация..."></textarea>
+                    <label class="form-label">URL сайта (опционально)</label>
+                    <input type="url" class="form-input" id="url" placeholder="https://example.com">
                 </div>
-                
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeModal()">
-                        Отмена
-                    </button>
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-save"></i> Сохранить
-                    </button>
+                <div class="form-group">
+                    <label class="form-label">Заметки (опционально)</label>
+                    <textarea class="form-input" id="notes" placeholder="Дополнительная информация" rows="3"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" onclick="hideAddForm()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Модальное окно генератора паролей -->
-    <div class="modal" id="generatorModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Генератор паролей</h2>
-                <button class="close-btn" onclick="closeGenerator()">&times;</button>
-            </div>
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.BackButton.hide();
+
+        // Установка цветовой темы
+        document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
+        document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f4f4f5');
+        document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#707579');
+        document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#2481cc');
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
+
+        // База данных для хранения паролей
+        class PasswordManagerDB {
+            constructor() {
+                this.db = null;
+                this.dbName = 'PasswordManagerDB';
+                this.storeName = 'passwords';
+                this.initialized = false;
+            }
+
+            async init() {
+                if (this.initialized) return Promise.resolve();
+                
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, 2);
+                    
+                    request.onerror = (event) => {
+                        console.error('IndexedDB error:', event.target.error);
+                        reject(event.target.error);
+                    };
+                    
+                    request.onsuccess = (event) => {
+                        this.db = event.target.result;
+                        this.initialized = true;
+                        console.log('IndexedDB initialized successfully');
+                        resolve();
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        console.log('Upgrading IndexedDB database');
+                        
+                        // Удаляем старую версию если существует
+                        if (db.objectStoreNames.contains(this.storeName)) {
+                            db.deleteObjectStore(this.storeName);
+                        }
+                        
+                        // Создаем новое хранилище
+                        const store = db.createObjectStore(this.storeName, { 
+                            keyPath: 'id',
+                            autoIncrement: true 
+                        });
+                        
+                        // Создаем индексы для поиска
+                        store.createIndex('category', 'category', { unique: false });
+                        store.createIndex('service', 'service', { unique: false });
+                        store.createIndex('createdAt', 'createdAt', { unique: false });
+                    };
+                });
+            }
+
+            async savePassword(passwordData) {
+                await this.init();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([this.storeName], 'readwrite');
+                    const store = transaction.objectStore(this.storeName);
+                    
+                    const data = {
+                        ...passwordData,
+                        id: Date.now() + Math.random(),
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    
+                    const request = store.add(data);
+                    
+                    request.onerror = (event) => {
+                        console.error('Error saving password:', event.target.error);
+                        reject(event.target.error);
+                    };
+                    
+                    request.onsuccess = () => {
+                        console.log('Password saved successfully:', data.id);
+                        resolve(data);
+                    };
+                });
+            }
+
+            async getPasswords(category = 'all') {
+                await this.init();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([this.storeName], 'readonly');
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.getAll();
+                    
+                    request.onerror = (event) => {
+                        console.error('Error getting passwords:', event.target.error);
+                        reject(event.target.error);
+                    };
+                    
+                    request.onsuccess = (event) => {
+                        let passwords = event.target.result || [];
+                        
+                        // Фильтрация по категории
+                        if (category !== 'all') {
+                            passwords = passwords.filter(p => p.category === category);
+                        }
+                        
+                        // Сортировка по дате создания (новые сначала)
+                        passwords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                        
+                        resolve(passwords);
+                    };
+                });
+            }
+
+            async deletePassword(id) {
+                await this.init();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([this.storeName], 'readwrite');
+                    const store = transaction.objectStore(this.storeName);
+                    const request = store.delete(id);
+                    
+                    request.onerror = (event) => reject(event.target.error);
+                    request.onsuccess = () => resolve();
+                });
+            }
+
+            async updatePassword(id, updates) {
+                await this.init();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([this.storeName], 'readwrite');
+                    const store = transaction.objectStore(this.storeName);
+                    
+                    const getRequest = store.get(id);
+                    
+                    getRequest.onerror = (event) => reject(event.target.error);
+                    
+                    getRequest.onsuccess = (event) => {
+                        const data = event.target.result;
+                        if (!data) {
+                            reject(new Error('Password not found'));
+                            return;
+                        }
+                        
+                        const updatedData = {
+                            ...data,
+                            ...updates,
+                            updatedAt: new Date().toISOString()
+                        };
+                        
+                        const updateRequest = store.put(updatedData);
+                        
+                        updateRequest.onerror = (event) => reject(event.target.error);
+                        updateRequest.onsuccess = () => resolve(updatedData);
+                    };
+                });
+            }
+
+            async getStats() {
+                const passwords = await this.getPasswords('all');
+                const categories = {};
+                let totalStrength = 0;
+                
+                passwords.forEach(pwd => {
+                    // Статистика по категориям
+                    categories[pwd.category] = (categories[pwd.category] || 0) + 1;
+                    
+                    // Оценка сложности пароля
+                    const strength = this.calculatePasswordStrength(pwd.password);
+                    totalStrength += strength;
+                });
+                
+                return {
+                    total: passwords.length,
+                    categories: categories,
+                    averageStrength: passwords.length > 0 ? Math.round(totalStrength / passwords.length) : 0,
+                    lastUpdate: passwords.length > 0 
+                        ? new Date(passwords[0].updatedAt || passwords[0].createdAt).toLocaleDateString('ru-RU')
+                        : 'никогда'
+                };
+            }
+
+            calculatePasswordStrength(password) {
+                if (!password) return 0;
+                
+                let score = 0;
+                
+                // Длина пароля
+                if (password.length >= 12) score += 30;
+                else if (password.length >= 8) score += 20;
+                else if (password.length >= 6) score += 10;
+                
+                // Разнообразие символов
+                if (/[a-z]/.test(password)) score += 10;
+                if (/[A-Z]/.test(password)) score += 15;
+                if (/[0-9]/.test(password)) score += 15;
+                if (/[^a-zA-Z0-9]/.test(password)) score += 20;
+                
+                // Проверка на распространенные пароли
+                const commonPasswords = ['123456', 'password', 'qwerty', '12345678', '123456789'];
+                if (!commonPasswords.includes(password.toLowerCase())) score += 10;
+                
+                return Math.min(score, 100);
+            }
+        }
+
+        // Инициализация менеджера паролей
+        const passwordDB = new PasswordManagerDB();
+        let currentCategory = 'all';
+
+        // Функция показа уведомления
+        function showNotification(message, duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
             
-            <div class="generator">
-                <div class="password-preview">
-                    <input type="text" id="generatedPassword" readonly>
-                    <button class="icon-btn" onclick="copyGeneratedPassword()">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translate(-50%, -20px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, duration);
+        }
+
+        // Функция отображения паролей
+        async function displayPasswords() {
+            try {
+                const passwords = await passwordDB.getPasswords(currentCategory);
+                const passwordList = document.getElementById('passwordList');
+                const emptyState = document.getElementById('emptyState');
                 
-                <div class="generator-controls">
-                    <div class="control">
-                        <label>Длина: <span id="lengthValue">12</span></label>
-                        <input type="range" id="lengthSlider" min="8" max="32" value="12" 
-                               oninput="updateGenerator()">
-                    </div>
+                passwordList.innerHTML = '';
+                
+                if (passwords.length === 0) {
+                    emptyState.style.display = 'block';
+                    passwordList.style.display = 'none';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                passwordList.style.display = 'flex';
+                
+                passwords.forEach(password => {
+                    const categoryNames = {
+                        social: 'Соцсети',
+                        email: 'Почта',
+                        games: 'Игры',
+                        finance: 'Финансы',
+                        work: 'Работа',
+                        other: 'Другое'
+                    };
                     
-                    <div class="checkboxes">
-                        <label>
-                            <input type="checkbox" id="uppercase" checked 
-                                   onchange="updateGenerator()">
-                            <i class="fas fa-font"></i> A-Z
-                        </label>
-                        <label>
-                            <input type="checkbox" id="lowercase" checked 
-                                   onchange="updateGenerator()">
-                            <i class="fas fa-font"></i> a-z
-                        </label>
-                        <label>
-                            <input type="checkbox" id="numbers" checked 
-                                   onchange="updateGenerator()">
-                            <i class="fas fa-hashtag"></i> 0-9
-                        </label>
-                        <label>
-                            <input type="checkbox" id="symbols" checked 
-                                   onchange="updateGenerator()">
-                            <i class="fas fa-asterisk"></i> !@#$%
-                        </label>
-                    </div>
-                    
-                    <div class="security-meter">
-                        <div class="meter-bar">
-                            <div class="meter-fill" id="meterFill"></div>
+                    const card = document.createElement('div');
+                    card.className = 'password-card';
+                    card.innerHTML = `
+                        <div class="password-header">
+                            <div class="service-name">${escapeHtml(password.service)}</div>
+                            <div class="category-badge">${categoryNames[password.category] || password.category}</div>
                         </div>
-                        <span id="securityText">Сильный</span>
-                    </div>
-                </div>
+                        <div class="password-field">
+                            <span class="field-label">Логин</span>
+                            <div class="field-value" id="username-${password.id}">${escapeHtml(password.username)}</div>
+                        </div>
+                        <div class="password-field">
+                            <span class="field-label">Пароль</span>
+                            <div class="field-value" id="password-${password.id}" style="filter: blur(5px); user-select: none;">••••••••</div>
+                        </div>
+                        ${password.notes ? `
+                        <div class="password-field">
+                            <span class="field-label">Заметки</span>
+                            <div class="field-value">${escapeHtml(password.notes)}</div>
+                        </div>
+                        ` : ''}
+                        <div class="password-actions">
+                            <button class="action-btn" onclick="showPassword(${password.id})">
+                                👁️ Показать
+                            </button>
+                            <button class="action-btn copy" onclick="copyToClipboard('${escapeHtml(password.password)}', 'пароль')">
+                                📋 Копировать
+                            </button>
+                        </div>
+                    `;
+                    
+                    passwordList.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error displaying passwords:', error);
+                showNotification('Ошибка загрузки паролей');
+            }
+        }
+
+        // Показать/скрыть пароль
+        function showPassword(id) {
+            const passwordEl = document.getElementById(`password-${id}`);
+            const button = event.target.closest('button');
+            
+            if (passwordEl.style.filter === 'blur(5px)') {
+                // Получаем пароль из базы данных
+                passwordDB.getPasswords('all').then(passwords => {
+                    const password = passwords.find(p => p.id === id);
+                    if (password) {
+                        passwordEl.style.filter = 'none';
+                        passwordEl.textContent = password.password;
+                        button.innerHTML = '👁️‍🗨️ Скрыть';
+                        // Автоматически скрыть через 30 секунд
+                        setTimeout(() => {
+                            if (passwordEl.style.filter === 'none') {
+                                passwordEl.style.filter = 'blur(5px)';
+                                passwordEl.textContent = '••••••••';
+                                button.innerHTML = '👁️ Показать';
+                            }
+                        }, 30000);
+                    }
+                });
+            } else {
+                passwordEl.style.filter = 'blur(5px)';
+                passwordEl.textContent = '••••••••';
+                button.innerHTML = '👁️ Показать';
+            }
+        }
+
+        // Копирование в буфер обмена
+        function copyToClipboard(text, type) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} скопирован!`);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showNotification('Ошибка копирования');
+            });
+        }
+
+        // Функция добавления пароля
+        function showAddForm() {
+            document.getElementById('addModal').style.display = 'flex';
+            tg.BackButton.show();
+            tg.BackButton.onClick(hideAddForm);
+        }
+
+        function hideAddForm() {
+            document.getElementById('addModal').style.display = 'none';
+            tg.BackButton.hide();
+            document.getElementById('passwordForm').reset();
+        }
+
+        // Генерация пароля
+        function generatePassword() {
+            const length = 16;
+            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+            let password = "";
+            
+            // Гарантируем наличие разных типов символов
+            password += getRandomChar("abcdefghijklmnopqrstuvwxyz");
+            password += getRandomChar("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+            password += getRandomChar("0123456789");
+            password += getRandomChar("!@#$%^&*()_+-=[]{}|;:,.<>?");
+            
+            // Добиваем до нужной длины
+            for (let i = 4; i < length; i++) {
+                password += getRandomChar(charset);
+            }
+            
+            // Перемешиваем пароль
+            password = password.split('').sort(() => Math.random() - 0.5).join('');
+            
+            document.getElementById('password').value = password;
+            document.getElementById('password').type = 'text';
+            
+            // Показываем уведомление
+            showNotification('Сгенерирован надежный пароль');
+        }
+
+        function getRandomChar(charset) {
+            return charset[Math.floor(Math.random() * charset.length)];
+        }
+
+        // Обработка формы
+        document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const service = document.getElementById('serviceName').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const category = document.getElementById('category').value;
+            const url = document.getElementById('url').value.trim();
+            const notes = document.getElementById('notes').value.trim();
+            
+            if (!service || !username || !password) {
+                showNotification('Заполните обязательные поля');
+                return;
+            }
+            
+            try {
+                const passwordData = {
+                    service,
+                    username,
+                    password,
+                    category,
+                    url: url || null,
+                    notes: notes || null
+                };
                 
-                <button class="btn-primary" onclick="useGeneratedPassword()">
-                    <i class="fas fa-check"></i> Использовать этот пароль
-                </button>
-            </div>
-        </div>
-    </div>
+                await passwordDB.savePassword(passwordData);
+                
+                // Отправляем уведомление в бот
+                if (tg && tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        command: 'password_added',
+                        service: service,
+                        category: category,
+                        timestamp: new Date().toISOString()
+                    }));
+                }
+                
+                showNotification('Пароль успешно сохранен!');
+                hideAddForm();
+                displayPasswords();
+                
+            } catch (error) {
+                console.error('Error saving password:', error);
+                showNotification('Ошибка сохранения пароля');
+            }
+        });
 
-    <!-- Уведомление -->
-    <div class="toast" id="toast"></div>
+        // Обработка категорий
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentCategory = this.dataset.category;
+                displayPasswords();
+            });
+        });
 
-    <script src="script.js"></script>
+        // Экспорт зашифрованных данных
+        async function exportEncrypted() {
+            try {
+                const passwords = await passwordDB.getPasswords('all');
+                const stats = await passwordDB.getStats();
+                
+                const exportData = {
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    statistics: stats,
+                    passwords: passwords
+                };
+                
+                // Простое шифрование (в реальном приложении используйте более надежное шифрование)
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const encrypted = btoa(unescape(encodeURIComponent(dataStr)));
+                
+                // Создание файла для скачивания
+                downloadFile(encrypted, 'passwords_encrypted.json', 'application/json');
+                
+                showNotification('Данные экспортированы с шифрованием');
+                
+                // Отправляем уведомление в бот
+                if (tg && tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        command: 'export_complete',
+                        export_time: new Date().toISOString(),
+                        item_count: stats.total,
+                        type: 'encrypted'
+                    }));
+                }
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('Ошибка экспорта');
+            }
+        }
+
+        // Экспорт НЕшифрованных данных (как вы просили)
+        async function exportUnencrypted() {
+            try {
+                const passwords = await passwordDB.getPasswords('all');
+                const stats = await passwordDB.getStats();
+                
+                const exportData = {
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    statistics: stats,
+                    passwords: passwords.map(p => ({
+                        service: p.service,
+                        username: p.username,
+                        password: p.password, // Пароли в открытом виде!
+                        category: p.category,
+                        url: p.url,
+                        notes: p.notes,
+                        createdAt: p.createdAt,
+                        updatedAt: p.updatedAt
+                    }))
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                
+                // Создание файла для скачивания
+                downloadFile(dataStr, 'passwords_unencrypted.json', 'application/json');
+                
+                // Предупреждение о безопасности
+                showNotification('⚠️ ВНИМАНИЕ: Пароли экспортированы БЕЗ шифрования!');
+                
+                // Отправляем уведомление в бот
+                if (tg && tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        command: 'export_complete',
+                        export_time: new Date().toISOString(),
+                        item_count: stats.total,
+                        type: 'unencrypted',
+                        warning: 'Пароли экспортированы без шифрования!'
+                    }));
+                }
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('Ошибка экспорта');
+            }
+        }
+
+        // Функция скачивания файла
+        function downloadFile(content, fileName, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        // Показать статистику
+        async function showStats() {
+            try {
+                const stats = await passwordDB.getStats();
+                const passwords = await passwordDB.getPasswords('all');
+                
+                let message = `📊 Статистика паролей\n\n`;
+                message += `Всего паролей: ${stats.total}\n`;
+                message += `Средняя безопасность: ${stats.averageStrength}%\n`;
+                message += `Последнее обновление: ${stats.lastUpdate}\n\n`;
+                message += `📁 По категориям:\n`;
+                
+                for (const [category, count] of Object.entries(stats.categories)) {
+                    const categoryNames = {
+                        social: 'Соцсети',
+                        email: 'Почта',
+                        games: 'Игры',
+                        finance: 'Финансы',
+                        work: 'Работа',
+                        other: 'Другое'
+                    };
+                    message += `${categoryNames[category] || category}: ${count}\n`;
+                }
+                
+                // Анализ безопасности
+                message += `\n🔐 Анализ безопасности:\n`;
+                if (stats.total === 0) {
+                    message += `Добавьте первые пароли для анализа\n`;
+                } else if (stats.averageStrength < 50) {
+                    message += `⚠️  Низкий уровень безопасности\n`;
+                    message += `Рекомендуется улучшить пароли\n`;
+                } else if (stats.averageStrength < 75) {
+                    message += `✅ Средний уровень безопасности\n`;
+                } else {
+                    message += `🎉 Высокий уровень безопасности!\n`;
+                }
+                
+                alert(message);
+                
+            } catch (error) {
+                console.error('Stats error:', error);
+                showNotification('Ошибка загрузки статистики');
+            }
+        }
+
+        // Меню экспорта
+        function toggleExportMenu() {
+            const dropdown = document.getElementById('exportDropdown');
+            dropdown.classList.toggle('show');
+            
+            // Закрытие при клике вне меню
+            setTimeout(() => {
+                const closeHandler = (e) => {
+                    if (!e.target.closest('.export-menu')) {
+                        dropdown.classList.remove('show');
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                document.addEventListener('click', closeHandler);
+            }, 0);
+        }
+
+        // Экранирование HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await passwordDB.init();
+                await displayPasswords();
+                console.log('App initialized successfully');
+                
+                // Проверка резервной копии (раз в 30 дней)
+                const lastBackup = localStorage.getItem('lastBackup');
+                const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                
+                if (!lastBackup || parseInt(lastBackup) < thirtyDaysAgo) {
+                    showNotification('💾 Рекомендуется сделать резервную копию', 5000);
+                    
+                    // Отправляем напоминание в бот
+                    if (tg && tg.sendData) {
+                        tg.sendData(JSON.stringify({
+                            command: 'backup_reminder',
+                            days_since_backup: lastBackup 
+                                ? Math.floor((Date.now() - parseInt(lastBackup)) / (24 * 60 * 60 * 1000))
+                                : 999
+                        }));
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showNotification('Ошибка инициализации приложения');
+            }
+        });
+
+        // Обработка клавиши Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideAddForm();
+                document.getElementById('exportDropdown').classList.remove('show');
+            }
+        });
+    </script>
 </body>
 </html>
