@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой Telegram Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.3s;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .user-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .button {
+            background: white;
+            color: #2575fc;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px 0;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .button.primary {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .button.success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .result {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .theme-dark {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Мой Mini App</h1>
+            <p>Интерактивное приложение в Telegram</p>
+        </div>
+        
+        <div class="user-card" id="userCard">
+            <h3>👤 Информация о вас:</h3>
+            <div class="info-grid">
+                <div class="info-item" id="userName">Имя: ...</div>
+                <div class="info-item" id="userId">ID: ...</div>
+                <div class="info-item" id="userLang">Язык: ...</div>
+                <div class="info-item" id="theme">Тема: ...</div>
+            </div>
+        </div>
+        
+        <button class="button primary" onclick="sendHello()">
+            👋 Отправить приветствие боту
+        </button>
+        
+        <button class="button" onclick="getPlatformInfo()">
+            📱 Информация о платформе
+        </button>
+        
+        <button class="button success" onclick="sendCustomData()">
+            📤 Отправить данные
+        </button>
+        
+        <button class="button" onclick="toggleTheme()">
+            🌙 Сменить тему
+        </button>
+        
+        <button class="button primary" onclick="closeApp()">
+            ✅ Завершить и отправить
+        </button>
+        
+        <div class="result" id="result"></div>
+    </div>
+    
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        
+        // Настройка приложения
+        tg.expand(); // Раскрываем на весь экран
+        tg.MainButton.setText("Отправить результат");
+        tg.MainButton.show();
+        tg.MainButton.onClick(sendResults);
+        
+        // Получаем данные пользователя
+        const user = tg.initDataUnsafe.user;
+        
+        // Обновляем информацию о пользователе
+        if (user) {
+            document.getElementById('userName').textContent = `Имя: ${user.first_name}`;
+            document.getElementById('userId').textContent = `ID: ${user.id}`;
+            document.getElementById('userLang').textContent = `Язык: ${user.language_code || 'не указан'}`;
+        }
+        
+        // Настройка темы
+        document.getElementById('theme').textContent = `Тема: ${tg.colorScheme === 'dark' ? 'Тёмная' : 'Светлая'}`;
+        document.body.classList.add(`theme-${tg.colorScheme}`);
+        
+        // Функции приложения
+        function sendHello() {
+            const data = {
+                command: 'hello',
+                message: 'Привет от Mini App на GitHub Pages!',
+                user_id: user?.id,
+                timestamp: new Date().toISOString()
+            };
+            
+            tg.sendData(JSON.stringify(data));
+            showResult('✅ Приветствие отправлено боту!');
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        
+        function getPlatformInfo() {
+            const info = `
+                📊 <b>Информация о платформе:</b><br><br>
+                • Платформа: ${tg.platform}<br>
+                • Версия Telegram: ${tg.version}<br>
+                • Высота окна: ${tg.viewportHeight}px<br>
+                • Доступная высота: ${tg.viewportStableHeight}px<br>
+                • Цветовая схема: ${tg.colorScheme}<br>
+                • Язык: ${tg.initDataUnsafe.user?.language_code || 'не указан'}
+            `;
+            showResult(info);
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+        
+        function sendCustomData() {
+            const data = {
+                command: 'custom_data',
+                message: 'Пользовательские данные',
+                user: user ? {
+                    id: user.id,
+                    name: user.first_name
+                } : null,
+                platform: tg.platform,
+                timestamp: new Date().toISOString()
+            };
+            
+            tg.sendData(JSON.stringify(data));
+            showResult('📤 Пользовательские данные отправлены!');
+            tg.HapticFeedback.impactOccurred('heavy');
+        }
+        
+        function toggleTheme() {
+            if (tg.colorScheme === 'dark') {
+                tg.setHeaderColor('#6a11cb');
+                document.body.classList.remove('theme-dark');
+                document.body.classList.add('theme-light');
+            } else {
+                tg.setHeaderColor('#2c3e50');
+                document.body.classList.remove('theme-light');
+                document.body.classList.add('theme-dark');
+            }
+            showResult('🎨 Тема изменена!');
+        }
+        
+        function sendResults() {
+            const data = {
+                command: 'final_results',
+                message: 'Пользователь завершил работу с приложением',
+                user_id: user?.id,
+                session_data: {
+                    platform: tg.platform,
+                    theme: tg.colorScheme,
+                    time_spent: Math.floor((Date.now() - tg.initDataUnsafe.start_param) / 1000) || 0
+                }
+            };
+            
+            tg.sendData(JSON.stringify(data));
+            tg.close();
+        }
+        
+        function closeApp() {
+            tg.close();
+        }
+        
+        function showResult(text) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = text;
+            resultDiv.style.display = 'block';
+            
+            // Автоскрытие через 5 секунд
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Логирование для отладки
+        console.log('Telegram Web App инициализирован:', {
+            user: user,
+            initData: tg.initData,
+            platform: tg.platform,
+            version: tg.version
+        });
+        
+        // Показываем уведомление о готовности
+        tg.ready();
+    </script>
+</body>
+</html>
