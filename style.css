@@ -357,13 +357,26 @@ body {
     background: var(--primary);
     color: white;
     border: none;
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    font-size: 24px;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.btn-add i {
+    font-size: 22px;
+    margin: 0;
+}
+
+/* Убираем возможные отступы от текста */
+.btn-add::after {
+    content: none;
 }
 
 .btn-add:hover {
